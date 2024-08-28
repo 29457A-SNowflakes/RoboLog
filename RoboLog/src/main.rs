@@ -1,11 +1,39 @@
 use std::*;
-
+use connection::serial::{find_devices, SerialDevice};
+use vex_v5_serial::*;
 use clap::{Command, Arg};
 use tokio;
 
 
 async fn ListDevices(arg: String) {
-    println!("Listing {} devices", arg);
+    if arg == "direct" || arg == "all" {    
+        let results = find_devices();
+        match results {
+            Err(e) => {
+                println!("Issue finding devices: {}", e.to_string());
+                return;
+            },
+            Ok(devices) => {
+                println!("{} device(s) found", devices.len());
+                if devices.is_empty() {return;}
+                else {print!(":")}
+                for device in devices.iter() {
+                    match device {
+                        SerialDevice::Brain { user_port: _, system_port } => {
+                            println!("Brain on {}", system_port);
+                        },
+                        SerialDevice::Controller { system_port } => {
+                            println!("Controller on {}", system_port);
+                        },
+                        SerialDevice::Unknown { system_port } => {
+                            println!("Unknown device on {}", system_port);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -25,7 +53,7 @@ async fn main() {
                         .value_name("TYPE")
                         .required(false)
                         .default_value("all")
-                        .value_parser(["all", "bluetooth", "direct", "controller"])
+                        .value_parser(["all", "bluetooth", "direct"])
                         .ignore_case(true)
                 )
         );
